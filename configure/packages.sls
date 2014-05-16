@@ -11,7 +11,7 @@ emacs:
   file:
     - managed
     - name: /root/.emacs
-    - source: salt://common/files/emacs.jinja
+    - source: salt://configure/files/emacs.jinja
     - user: root
     - group: root
     - mode: 644

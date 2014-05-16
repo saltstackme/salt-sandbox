@@ -94,7 +94,7 @@ ssh:
   ssh_auth:
     - present
     - user: {{ user.sso }}
-    - source: salt://common/files/{{ user.sso }}.id_rsa.pub
+    - source: salt://configure/files/{{ user.sso }}.id_rsa.pub
     - require:
       - user: {{ user.sso }}
 {%- endfor %}
