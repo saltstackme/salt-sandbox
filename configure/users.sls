@@ -75,7 +75,6 @@ ssh:
 {{ group.name }}:
   group:
     - present
-    - gid: {{ group.gid }}
     - require:
         - file: /etc/sudoers
 {%- endfor %}
@@ -86,7 +85,6 @@ ssh:
     - present
     - fullname: {{ user.fullname }}
     - shell: /bin/bash
-    - uid: {{ user.uid }}
     - groups:
 {%-     for group in user.groups %}
         - {{ group }}

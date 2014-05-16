@@ -1,10 +1,6 @@
 sb_groups:
     -
         name: devops
-        gid: 2000
-    -
-        name: admin
-        gid: 999
 
 sb_users:
     -
