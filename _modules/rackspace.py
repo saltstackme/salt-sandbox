@@ -7,9 +7,11 @@ import logging
 import urllib2
 import random
 import time
+
 import sys
 import requests
 import json
+import re
 
 log = logging.getLogger(__name__)
 
@@ -37,11 +39,13 @@ def init(username, api_key, account_id=None):
 '''
 
 def init(username, api_key, account_id):
-    headers = connect(username, api_key)
-    return get_images(headers, account_id)
+    headers = rackspace(username, api_key)
+    filters = ['ubuntu', 'centos']
+    dcs = ['iad','dfw','ord','hkg','syd']
+    return create_profiles(dcs, headers, account_id, filters)
     
 
-def connect(username, api_key):
+def rackspace(username, api_key):
     url = 'https://identity.api.rackspacecloud.com/v2.0/tokens'
     payload  = {"auth":{"RAX-KSKEY:apiKeyCredentials":{"username": username , "apiKey": api_key }}}
     headers = {'Content-Type': 'application/json'}
@@ -50,7 +54,7 @@ def connect(username, api_key):
     headers = {'X-Auth-Token' : token}
     return headers
 
-def get(url, headers, payload=None):
+def _get(url, headers, payload=None):
     r = requests.get(url, data=json.dumps(payload), headers=headers)
     return [r.status_code, r.headers, r.content]
 
@@ -67,11 +71,38 @@ def delete(url, headers, payload=None):
     return [r.status_code, r.headers, r.content]
 
 
-def get_images(headers, account_id):
-    url = 'https://iad.servers.api.rackspacecloud.com/v2/' + str(account_id) + '/flavors'
-    return get(url, headers)
-    
+def get_images(dc, headers, account_id, filters):
+    url = 'https://'+ dc +'.servers.api.rackspacecloud.com/v2/' + str(account_id) + '/images'
+    response = _get(url, headers)
+    content = response[2]
+    images = json.loads(content)['images']
+    image_list = []
+    for image in images:
+        for filter in filters:
+            if filter.lower() in image['name'].lower():
+                image_list.append(image['name'])
+                break
+    return image_list
 
+
+def get_flavors(dc, headers, account_id):
+    url = 'https://' + dc + '.servers.api.rackspacecloud.com/v2/' + str(account_id) + '/flavors'
+    response = _get(url, headers)
+    content = response[2]
+    flavors = json.loads(content)['flavors']
+    flavor_list = []
+    for flavor in flavors:
+        flavor_list.append(flavor['name'])
+    return flavor_list
+
+def create_profiles(dcs, headers, account_id, filters):
+    for dc in dcs:
+        flavors = get_flavors(dc, headers, account_id)
+        images = get_images(dc, headers, account_id, filters)
+        for flavor in flavors:
+            for image in images:
+                print flavor, image
+        print "----"
 
 if __name__ == "__main__":
     init(sys.argv[1], sys.argv[2], sys.argv[3])
