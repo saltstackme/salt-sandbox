@@ -13,6 +13,8 @@ import requests
 import json
 import yaml
 import re
+import os
+import errno
 
 log = logging.getLogger(__name__)
 
@@ -42,9 +44,6 @@ def delete(url, headers, payload=None):
 
 def init(prefix, account, username, api_key, account_id, match=None):
     rackspace(prefix, account, username, api_key, account_id, match)
-#    headers = rackspace(username, api_key)
-#    dcs = ['iad','dfw','ord','hkg','syd']
-#    return create_profiles(dcs, headers, account_id, filters)
     
 
 def rackspace(prefix, account, username, api_key, account_id, match=None):
@@ -58,13 +57,16 @@ def rackspace(prefix, account, username, api_key, account_id, match=None):
     else:
         dcs = ['lon']
 
-    #print _rax_get_images('ord', token, account_id, match)
-    #print _rax_get_flavors('ord', token, account_id)
-    #_rax_create_profiles(dcs, token, account_id, match)
-    _rax_create_providers(prefix, "salt_master", dcs, username, api_key, account_id)
-
+    log.info("Creatig profiles")
+    profiles = _rax_create_profiles(prefix, dcs, token, account_id, match)
+    log.info("Profiles are created")
+    log.info("Creating providers")
+    providers = _rax_create_providers(prefix, "salt_master", dcs, username, api_key, account_id)
+    log.info("Profiles are created")
+    return {"providers": providers, "profiles": profiles}
 
 def _rax_get_token(account, username, api_key):
+    log.info("Getting Rackspace authentication token")
     url = 'https://identity.api.rackspacecloud.com/v2.0/tokens'
     payload  = {"auth":{"RAX-KSKEY:apiKeyCredentials":{"username": username , "apiKey": api_key }}}
     headers = {'Content-Type': 'application/json'}
@@ -99,15 +101,15 @@ def _rax_get_flavors(dc, token, account_id):
     return flavor_list
 
 def _rax_create_providers(prefix, salt_master, dcs, username, api_key, account_id):
-    salt_master = "salt-master.helloworld.com"
+    try:
+        os.makedirs("/etc/salt/cloud.providers.d")
+    except OSError as exception:
+        if exception.errno != errno.EEXIST:
+            raise
     providers = []
     for dc in dcs:
         provider = {}
         name = prefix + '-'+ dc
-        provider[name] = {}
-        #provider[name]['identity_url'] = 'https://identity.api.rackspacecloud.com/v2.0/tokens' 
-        #provider[name]['compute_name'] = 'cloudServersOpenStack'
-        #provider[name]['']
         master = {'master': salt_master}
         provider[name] = {
             "apikey": api_key, 
@@ -120,16 +122,35 @@ def _rax_create_providers(prefix, salt_master, dcs, username, api_key, account_i
             "identity_url": "https://identity.api.rackspacecloud.com/v2.0/tokens", 
             "tenant": account_id
         }
-        print yaml.dump(provider)
+        stream = file('/etc/salt/cloud.providers.d/' + name + '.conf', 'w')
+        providers.append('/etc/salt/cloud.providers.d/' + name + '.conf')
+        yaml.dump(provider, stream, default_flow_style=False)
+    return providers
 
-def _rax_create_profiles(dcs, token, account_id, match):
+def _rax_create_profiles(prefix, dcs, token, account_id, match):
+    try:
+        os.makedirs("/etc/salt/cloud.profiles.d")
+    except OSError as exception:
+        if exception.errno != errno.EEXIST:
+            raise
+    profiles = []
     for dc in dcs:
         flavors = _rax_get_flavors(dc, token, account_id)
         images = _rax_get_images(dc, token, account_id, match)
+        profile = {}
         for flavor in flavors:
             for image in images:
-                print flavor, image
-        print "----"
+                name = prefix + "-"+ dc + "-" + flavor.replace(" ", "-") + "-" + image.replace(" ", "-") 
+                profile[str(name)] = {
+                    "provider": str(prefix),
+                    "size": str(flavor),
+                    "image": str(image)
+                }
+        stream = file('/etc/salt/cloud.profiles.d/' + prefix + "-" + dc + '.conf', 'w')
+        profiles.append('/etc/salt/cloud.profiles.d/' + prefix + "-" + dc + '.conf')
+        yaml.dump(profile, stream, default_flow_style=False)
+    return profiles
+                
 
 if __name__ == "__main__":
     init(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], sys.argv[6])
