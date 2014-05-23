@@ -151,9 +151,9 @@ def _rax_create_profiles(prefix, dcs, token, account_id, match):
         profile = {}
         for flavor in flavors:
             for image in images:
-                name = prefix + "-"+ dc + "-" + flavor.replace(" ", "-") + "-" + image.replace(" ", "-") 
+                name = prefix + "-" + dc + "-" + flavor.replace(" ", "-") + "-" + image.replace(" ", "-") 
                 profile[str(name)] = {
-                    "provider": str(prefix),
+                    "provider": str(prefix) + "-" + dc,
                     "size": str(flavor),
                     "image": str(image)
                 }
