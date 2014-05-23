@@ -1,12 +1,9 @@
 '''
-salt-cloud configuration creator for Rackspace Cloud
+Creates salt-cloud configuration files for cloud vendors
 '''
 
 # Import python libs
 import logging
-import urllib2
-import random
-import time
 
 import sys
 import requests
@@ -18,10 +15,6 @@ import errno
 
 log = logging.getLogger(__name__)
 
-def test():
-    return "hello world"
-
-
 def _get(url, headers, payload=None):
     r = requests.get(url, data=json.dumps(payload), headers=headers)
     return {'status_code': r.status_code, 'headers': r.headers, 'content': r.content}
@@ -32,12 +25,12 @@ def _post(url, headers, payload=None):
     return {'status_code': r.status_code, 'headers': r.headers, 'content': r.content}
 
 
-def put(url, headers, payload=None):
+def _put(url, headers, payload=None):
     r = requests.put(url, data=json.dumps(payload), headers=headers)
     return {'status_code': r.status_code, 'headers': r.headers, 'content': r.content}
 
 
-def delete(url, headers, payload=None):
+def _delete(url, headers, payload=None):
     r = requests.delete(url, data=json.dumps(payload), headers=headers)
     return {'status_code': r.status_code, 'headers': r.headers, 'content': r.content}
 
@@ -47,6 +40,9 @@ def init(prefix, account, username, api_key, account_id, match=None):
     
 
 def rackspace(prefix, account, username, api_key, account_id, match=None):
+    '''
+    Creates cloud profiles and providers for salt.
+    '''
     token = _rax_get_token(account, username, api_key)
 
     if match:
@@ -66,6 +62,9 @@ def rackspace(prefix, account, username, api_key, account_id, match=None):
     return {"providers": providers, "profiles": profiles}
 
 def _rax_get_token(account, username, api_key):
+    '''
+    Get authentication token from Rackspace identity service
+    '''
     log.info("Getting Rackspace authentication token")
     url = 'https://identity.api.rackspacecloud.com/v2.0/tokens'
     payload  = {"auth":{"RAX-KSKEY:apiKeyCredentials":{"username": username , "apiKey": api_key }}}
@@ -75,6 +74,9 @@ def _rax_get_token(account, username, api_key):
 
 
 def _rax_get_images(dc, token, account_id, match):
+    '''
+    Get all available images in given data center
+    '''
     url = 'https://'+ dc +'.servers.api.rackspacecloud.com/v2/' + str(account_id) + '/images'
     headers = {'X-Auth-Token' : token}
     response = _get(url, headers)
@@ -90,6 +92,9 @@ def _rax_get_images(dc, token, account_id, match):
 
 
 def _rax_get_flavors(dc, token, account_id):
+    '''
+    Get all flavors in given data center
+    '''
     url = 'https://' + dc + '.servers.api.rackspacecloud.com/v2/' + str(account_id) + '/flavors'
     headers = {'X-Auth-Token' : token}
     response = _get(url, headers)
@@ -101,6 +106,9 @@ def _rax_get_flavors(dc, token, account_id):
     return flavor_list
 
 def _rax_create_providers(prefix, salt_master, dcs, username, api_key, account_id):
+    '''
+    Create provider configuration files under /etc/salt/cloud.providers.d
+    '''
     try:
         os.makedirs("/etc/salt/cloud.providers.d")
     except OSError as exception:
@@ -128,6 +136,9 @@ def _rax_create_providers(prefix, salt_master, dcs, username, api_key, account_i
     return providers
 
 def _rax_create_profiles(prefix, dcs, token, account_id, match):
+    '''
+    Create profiles configuration files under /etc/salt/cloud.profiles.d
+    '''
     try:
         os.makedirs("/etc/salt/cloud.profiles.d")
     except OSError as exception:
@@ -153,4 +164,9 @@ def _rax_create_profiles(prefix, dcs, token, account_id, match):
                 
 
 if __name__ == "__main__":
+    '''
+    for testing puroses
+    so we can call the cloud_config.py from
+    command line
+    '''
     init(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], sys.argv[6])
