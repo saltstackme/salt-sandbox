@@ -9,7 +9,6 @@ import sys
 import requests
 import json
 import yaml
-import re
 import os
 import errno
 
