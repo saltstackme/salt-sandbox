@@ -27,3 +27,11 @@ git:
   pkg:
     - installed
 
+salt:
+  pkg:
+    - installed
+    - pkgs:
+      - salt-common
+      - salt-master
+      - salt-minion
+      - salt-cloud
