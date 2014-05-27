@@ -34,23 +34,21 @@ def _delete(url, headers, payload=None):
     return {'status_code': r.status_code, 'headers': r.headers, 'content': r.content}
 
 
-def init(prefix, account, username, api_key, account_id, match=None):
-    rackspace(prefix, account, username, api_key, account_id, match)
+def init(prefix, username, api_key, account_id, match=None):
+    rackspace(prefix, username, api_key, account_id, match)
     
 
-def rackspace(prefix, account, username, api_key, account_id, match=None):
+def rackspace(prefix, username, api_key, account_id, match=None):
     '''
     Creates cloud profiles and providers for salt.
     '''
-    token = _rax_get_token(account, username, api_key)
+    auth = _rax_auth(username, api_key)
+    token = auth['token']
 
     if match:
         match = match.split(",")
 
-    if account == "us":
-        dcs = ['ord','iad','dfw','hkg','syd']
-    else:
-        dcs = ['lon']
+    dcs = auth['regions']
 
     log.info("Creatig profiles")
     profiles = _rax_create_profiles(prefix, dcs, token, account_id, match)
@@ -60,7 +58,8 @@ def rackspace(prefix, account, username, api_key, account_id, match=None):
     log.info("Profiles are created")
     return {"providers": providers, "profiles": profiles}
 
-def _rax_get_token(account, username, api_key):
+
+def _rax_auth(username, api_key):
     '''
     Get authentication token from Rackspace identity service
     '''
@@ -69,7 +68,10 @@ def _rax_get_token(account, username, api_key):
     payload  = {"auth":{"RAX-KSKEY:apiKeyCredentials":{"username": username , "apiKey": api_key }}}
     headers = {'Content-Type': 'application/json'}
     r = requests.get(url, data=json.dumps(payload), headers=headers)
-    return json.loads(r.content)['access']['token']['id']
+    rdic = json.loads(r.content)
+    token = rdic['access']['token']['id']
+    regions = [r['region'].lower() for r in [service['endpoints'] for service in rdic['access']['serviceCatalog'] if service['name'] == "cloudServersOpenStack"][0]]
+    return {'token': token, 'regions': regions}
 
 
 def _rax_get_images(dc, token, account_id, match):
@@ -104,6 +106,7 @@ def _rax_get_flavors(dc, token, account_id):
         flavor_list.append(flavor['name'])
     return flavor_list
 
+
 def _rax_create_providers(prefix, salt_master, dcs, username, api_key, account_id):
     '''
     Create provider configuration files under /etc/salt/cloud.providers.d
@@ -133,6 +136,7 @@ def _rax_create_providers(prefix, salt_master, dcs, username, api_key, account_i
         providers.append('/etc/salt/cloud.providers.d/' + name + '.conf')
         yaml.dump(provider, stream, default_flow_style=False)
     return providers
+
 
 def _rax_create_profiles(prefix, dcs, token, account_id, match):
     '''
@@ -168,4 +172,4 @@ if __name__ == "__main__":
     so we can call the cloud_config.py from
     command line
     '''
-    init(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], sys.argv[6])
+    init(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5])
