@@ -35,3 +35,10 @@ salt:
       - salt-master
       - salt-minion
       - salt-cloud
+  file:
+    - managed
+    - name: /etc/salt/master
+    - source: salt://configure/files/master.jinja
+    - template: jinja
+    - require:
+      - pkg: salt
