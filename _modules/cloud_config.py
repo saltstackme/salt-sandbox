@@ -70,7 +70,7 @@ def _rax_auth(username, api_key):
     r = requests.get(url, data=json.dumps(payload), headers=headers)
     rdic = json.loads(r.content)
     token = rdic['access']['token']['id']
-    regions = [r['region'].lower() for r in [service['endpoints'] for service in rdic['access']['serviceCatalog'] if service['name'] == "cloudServersOpenStack"][0]]
+    regions = [str(r['region'].lower()) for r in [service['endpoints'] for service in rdic['access']['serviceCatalog'] if service['name'] == "cloudServersOpenStack"][0]]
     return {'token': token, 'regions': regions}
 
 
