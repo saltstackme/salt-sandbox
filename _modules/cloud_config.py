@@ -1,5 +1,8 @@
 '''
 Creates salt-cloud configuration files for cloud vendors
+
+To run manually
+python cloud_config.py  "prefix" "username" "api key" "account id" "ubuntu,centos"
 '''
 
 # Import python libs
