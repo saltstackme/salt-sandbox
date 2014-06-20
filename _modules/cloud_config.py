@@ -14,6 +14,7 @@ import json
 import yaml
 import os
 import errno
+import socket
 
 log = logging.getLogger(__name__)
 
@@ -109,6 +110,10 @@ def _rax_get_flavors(dc, token, account_id):
         flavor_list.append(flavor['name'])
     return flavor_list
 
+def getPublicIp():
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.connect(('google.com', 0))
+    return s.getsockname()[0]
 
 def _rax_create_providers(prefix, salt_master, dcs, username, api_key, account_id):
     '''
@@ -123,7 +128,7 @@ def _rax_create_providers(prefix, salt_master, dcs, username, api_key, account_i
     for dc in dcs:
         provider = {}
         name = prefix + '-'+ dc
-        master = {'master': salt_master}
+        master = {'master': "getPublicIp()"}
         provider[name] = {
             "apikey": api_key, 
             "protocol": "ipv4", 
