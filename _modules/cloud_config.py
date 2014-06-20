@@ -128,7 +128,8 @@ def _rax_create_providers(prefix, salt_master, dcs, username, api_key, account_i
     for dc in dcs:
         provider = {}
         name = prefix + '-'+ dc
-        master = {'master': "getPublicIp()"}
+        ip_address = getPublicIp()
+        master = {'master': ip_address}
         provider[name] = {
             "apikey": api_key, 
             "protocol": "ipv4", 
