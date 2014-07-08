@@ -71,7 +71,7 @@ def _rax_auth(username, api_key):
     url = 'https://identity.api.rackspacecloud.com/v2.0/tokens'
     payload  = {"auth":{"RAX-KSKEY:apiKeyCredentials":{"username": username , "apiKey": api_key }}}
     headers = {'Content-Type': 'application/json'}
-    r = requests.get(url, data=json.dumps(payload), headers=headers)
+    r = requests.post(url, data=json.dumps(payload), headers=headers)
     rdic = json.loads(r.content)
     token = rdic['access']['token']['id']
     regions = [str(r['region'].lower()) for r in [service['endpoints'] for service in rdic['access']['serviceCatalog'] if service['name'] == "cloudServersOpenStack"][0]]
