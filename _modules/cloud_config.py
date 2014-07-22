@@ -2,7 +2,7 @@
 Creates salt-cloud configuration files for cloud vendors
 
 To run manually
-python cloud_config.py  "prefix" "username" "api key" "account id" "ubuntu,centos"
+python cloud_config.py  "prefix" "username" "api key" "account id" "ubuntu,centos" "v2014.1.5"
 '''
 
 # Import python libs
@@ -38,11 +38,11 @@ def _delete(url, headers, payload=None):
     return {'status_code': r.status_code, 'headers': r.headers, 'content': r.content}
 
 
-def init(prefix, username, api_key, account_id, match=None):
-    rackspace(prefix, username, api_key, account_id, match)
+def init(prefix, username, api_key, account_id, match=None, version=None):
+    rackspace(prefix, username, api_key, account_id, match, version)
     
 
-def rackspace(prefix, username, api_key, account_id, match=None):
+def rackspace(prefix, username, api_key, account_id, match=None, version=None):
     '''
     Creates cloud profiles and providers for salt.
     '''
@@ -58,7 +58,7 @@ def rackspace(prefix, username, api_key, account_id, match=None):
     profiles = _rax_create_profiles(prefix, dcs, token, account_id, match)
     log.info("Profiles are created")
     log.info("Creating providers")
-    providers = _rax_create_providers(prefix, "salt_master", dcs, username, api_key, account_id)
+    providers = _rax_create_providers(prefix, "salt_master", dcs, username, api_key, account_id, version)
     log.info("Profiles are created")
     return {"providers": providers, "profiles": profiles}
 
@@ -115,7 +115,7 @@ def getPublicIp():
     s.connect(('google.com', 0))
     return s.getsockname()[0]
 
-def _rax_create_providers(prefix, salt_master, dcs, username, api_key, account_id):
+def _rax_create_providers(prefix, salt_master, dcs, username, api_key, account_id, version=None):
     '''
     Create provider configuration files under /etc/salt/cloud.providers.d
     '''
@@ -124,6 +124,7 @@ def _rax_create_providers(prefix, salt_master, dcs, username, api_key, account_i
     except OSError as exception:
         if exception.errno != errno.EEXIST:
             raise
+
     providers = []
     for dc in dcs:
         provider = {}
@@ -141,6 +142,9 @@ def _rax_create_providers(prefix, salt_master, dcs, username, api_key, account_i
             "identity_url": "https://identity.api.rackspacecloud.com/v2.0/tokens", 
             "tenant": account_id
         }
+        if version:                            
+            provider[name]["script_args"] = "-- git " + version
+
         stream = file('/etc/salt/cloud.providers.d/' + name + '.conf', 'w')
         providers.append('/etc/salt/cloud.providers.d/' + name + '.conf')
         yaml.dump(provider, stream, default_flow_style=False)
@@ -181,4 +185,4 @@ if __name__ == "__main__":
     so we can call the cloud_config.py from
     command line
     '''
-    init(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5])
+    init(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], sys.argv[6])
